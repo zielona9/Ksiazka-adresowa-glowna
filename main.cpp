@@ -116,6 +116,49 @@ int logowanie(vector <Uzytkownicy> osoba)
     }
 
 }
+void zapisywanie_nowego_uzytkownika_plik( Uzytkownicy uzytkownik)
+{
+    fstream plik;
+    plik.open("Uzytkownicy.txt",ios::app|ios::binary|ios::ate);
+    if(plik.tellg()!=0)
+        plik<<endl;
+    plik<< uzytkownik.id<<"|"<<uzytkownik.login<<"|"<<uzytkownik.haslo<<"|";
+    plik.close();
+}
+
+void rejestracja( vector <Uzytkownicy> &uzytkownik)
+{
+    string login, haslo1, haslo2;
+    int itr;
+    do
+    {
+        cout<<"Podaj login"<<endl;
+        getline(cin,login);
+        itr=sprawdzanie_czy_istnieje_taki_login(uzytkownik,login);
+        if(itr!=-1)
+            cout<<"Podany login juz jest w rejestrze. Podaj inny"<<endl;
+    }
+    while(itr!=-1);
+    do
+    {
+        cout<<"Podaj haslo" <<endl;
+        getline(cin, haslo1);
+        cout<<"Podaj ponownie haslo" <<endl;
+        getline(cin, haslo2);
+        if(haslo1!=haslo2)
+        {
+            cout<<"Podane hasla sa rozne"<<endl;
+            cout<<"Wprowadz hasla jeszcze raz."<<endl;
+        }
+    }
+    while(haslo1!=haslo2);
+    Uzytkownicy nowy_uzytkownik;
+    nowy_uzytkownik.login=login;
+    nowy_uzytkownik.haslo=haslo1;
+    nowy_uzytkownik.id=uzytkownik[uzytkownik.size()-1].id+1;
+    uzytkownik.push_back(nowy_uzytkownik);
+    zapisywanie_nowego_uzytkownika_plik(nowy_uzytkownik);
+}
 int main()
 {
     int opcja;
@@ -135,7 +178,12 @@ int main()
             break;
         }
         case 2:
+        {
+            int itr;
+            rejestracja(uzytkownik);
             break;
+        }
+
         case 3:
             exit(0);
             break;
