@@ -175,7 +175,10 @@ int rejestracja( vector <Uzytkownicy> &uzytkownik)
     Uzytkownicy nowy_uzytkownik;
     nowy_uzytkownik.login=login;
     nowy_uzytkownik.haslo=haslo1;
+    if(uzytkownik.size()!=0)
     nowy_uzytkownik.id=uzytkownik[uzytkownik.size()-1].id+1;
+    else
+     nowy_uzytkownik.id=1;
     uzytkownik.push_back(nowy_uzytkownik);
     zapisywanie_nowego_uzytkownika_plik(nowy_uzytkownik);
     itr=uzytkownik.size()-1;
@@ -200,6 +203,7 @@ void pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba,int itr, int
 {
     int ile=0;
     rekord persona;
+    max_id_uzytkownika=0;
     if(plik.good()== false)
     {
         cout<<"Nie ma nikogo zapisanego w pliku Aresaci"<<endl;
@@ -207,6 +211,7 @@ void pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba,int itr, int
     }
     else
     {
+
         string linia;
         while(getline(plik,linia))
         {
@@ -223,9 +228,9 @@ void pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba,int itr, int
                 osoba.push_back(persona);
             }
 
+        max_id_uzytkownika=persona.id_adresata;
 
         }
-    max_id_uzytkownika=persona.id_adresata;
     }
 }
 void wypisywanie_danych_na_ekran(vector <rekord> osoba,int id, int nr_linii_do_wyswietlenia)
@@ -618,11 +623,14 @@ int szukanie_id_po_email(vector <rekord> osoba, string email)
     return -1;
 }
 
-void dodawanie_nowego_rekordu_wektor( rekord &persona, vector <rekord> &osoba,int max_id_adresata)
+void dodawanie_nowego_rekordu_wektor(int itr, rekord &persona, vector <rekord> &osoba,int &max_id_adresata)
 {
     fstream zapis;
     zapis.open("Adresaci.txt",ios::app);
-    persona.id_adresata=max_id_adresata+1;
+    persona.id_adresata=++max_id_adresata;
+    if(osoba.size()==0)
+    persona.id_uzytkownika=itr;
+    else
     persona.id_uzytkownika=osoba[0].id_uzytkownika;
     osoba.push_back(persona);
     cout<<"Nowe dane wygladaja nastepujaco"<<endl;
@@ -657,7 +665,7 @@ int sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(vector <rekord> osoba, in
     return id;
 
 }
-void dodanie_nowego_adresata(vector <rekord> &osoba,int max_id_adresata)
+void dodanie_nowego_adresata(int itr,vector <rekord> &osoba,int &max_id_adresata)
 {
     rekord persona;
     long int nr_tel;
@@ -665,7 +673,7 @@ void dodanie_nowego_adresata(vector <rekord> &osoba,int max_id_adresata)
     id=sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(osoba,id, persona);
     if(id==-1)
     {
-        dodawanie_nowego_rekordu_wektor(persona,osoba,max_id_adresata);
+        dodawanie_nowego_rekordu_wektor(itr, persona,osoba,max_id_adresata);
         zapisywanie_rekordu_do_pliku(persona);
         return;
     }
@@ -677,11 +685,11 @@ void dodanie_nowego_adresata(vector <rekord> &osoba,int max_id_adresata)
         if(numer_wyboru==1)
         {
             id=sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(osoba,id,persona);
-            dodawanie_nowego_rekordu_wektor(persona,osoba,max_id_adresata);
+            dodawanie_nowego_rekordu_wektor(itr,persona,osoba,max_id_adresata);
             zapisywanie_rekordu_do_pliku(persona);
         }
         else if(numer_wyboru==2)
-            dodanie_nowego_adresata(osoba,max_id_adresata);
+            dodanie_nowego_adresata(itr,osoba,max_id_adresata);
             else if(numer_wyboru==3)
                 return;
 
@@ -783,7 +791,7 @@ void wyszukiwanie_rekordow_po_nazwisku(string nazwisko, vector <rekord> osoba)
         cout<<"W ksiazce adresowej nie ma osoby o takim nazwisku"<<endl;
     system("pause");
 }
-void menu_po_logowaniu(vector <rekord> &osoba, int max_id_adresata)
+void menu_po_logowaniu(int itr, vector <rekord> &osoba, int &max_id_adresata)
 {
         int wybrana_opcja=1;
     while(wybrana_opcja!=9)
@@ -793,7 +801,7 @@ void menu_po_logowaniu(vector <rekord> &osoba, int max_id_adresata)
         switch(wybrana_opcja)
         {
         case 1:
-            dodanie_nowego_adresata(osoba,max_id_adresata);
+            dodanie_nowego_adresata(itr,osoba,max_id_adresata);
             break;
         case 2:
         {
@@ -851,7 +859,7 @@ int main()
                     int max_id_adresata;
                     pobieranie_danych_z_pliku(plik,osoba,itr,max_id_adresata);
                     plik.close();
-                    menu_po_logowaniu(osoba,max_id_adresata);
+                    menu_po_logowaniu(itr,osoba,max_id_adresata);
                }
                 system("cls");
                 break;
