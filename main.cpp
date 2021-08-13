@@ -132,7 +132,7 @@ int logowanie(vector <Uzytkownicy> osoba)
             itr =-1;
         }
 
-        return itr;
+        return osoba[itr].id;
     }
 
 }
@@ -196,13 +196,15 @@ int wyswietlanie_menu_glownego()
     opcja=pobieranie_opcji_od_uzytkownika(1,9);
     return opcja;
 }
-
-int pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba)
+void pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba,int itr, int &max_id_uzytkownika)
 {
     int ile=0;
     rekord persona;
     if(plik.good()== false)
-        return ile;
+    {
+        cout<<"Nie ma nikogo zapisanego w pliku Aresaci"<<endl;
+        return;
+    }
     else
     {
         string linia;
@@ -211,15 +213,19 @@ int pobieranie_danych_z_pliku(fstream &plik,vector <rekord> &osoba)
             int poczatek=0;
             persona.id_adresata=atoi(pobieranie_pojedynczego_slowa_z_linii(poczatek,linia).c_str());
             persona.id_uzytkownika=atoi(pobieranie_pojedynczego_slowa_z_linii(poczatek,linia).c_str());
-            persona.imie=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
-            persona.nazwisko=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
-            persona.nr_tel=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
-            persona.email=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
-            persona.adres=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
-            osoba.push_back(persona);
-            ile++;
+            if(persona.id_uzytkownika==itr)
+            {
+                persona.imie=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
+                persona.nazwisko=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
+                persona.nr_tel=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
+                persona.email=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
+                persona.adres=pobieranie_pojedynczego_slowa_z_linii(poczatek,linia);
+                osoba.push_back(persona);
+            }
+
+
         }
-        return ile;
+    max_id_uzytkownika=persona.id_adresata;
     }
 }
 void wypisywanie_danych_na_ekran(vector <rekord> osoba,int id, int nr_linii_do_wyswietlenia)
@@ -351,7 +357,7 @@ bool podjecie_decyzji_przez_uzytkownika_o_ponownym_powtorzeniu_danych()
 void zapisywanie_rekordu_do_pliku( rekord persona)
 {
     fstream zapis;
-    zapis.open("Ksiazka_adresowa.txt",ios::app|ios::binary|ios::ate);
+    zapis.open("Adresaci.txt",ios::app|ios::binary|ios::ate);
     if(zapis.tellg()!=0)
         zapis<<endl;
     zapis<<persona.id_adresata<<"|"<<persona.id_uzytkownika<<"|"<<persona.imie<<"|"<<persona.nazwisko<<"|"<<persona.nr_tel<<"|"<<persona.email<<"|"<<persona.adres<<"|";
@@ -450,6 +456,44 @@ void ostateczna_edycja_danej(vector <rekord> &osoba, string tekst,int nr_linii, 
             break;
         }
 }
+void przepisywanie_plikow(int nr_id_zmieniany,bool edycja,bool usuniecie, rekord persona)
+{
+    fstream odczyt, zapis;
+    odczyt.open("Adresaci.txt",ios::in);
+    zapis.open("Adresaci2.txt",ios::app|ios::binary|ios::ate);
+    int nr_id_adresata,poczatek;
+
+    string linijka;
+    while(getline(odczyt,linijka))
+    {
+        poczatek=0;
+        nr_id_adresata=atoi(pobieranie_pojedynczego_slowa_z_linii(poczatek,linijka).c_str());
+
+        if(nr_id_adresata==nr_id_zmieniany)
+        {
+            if(usuniecie==true)
+                continue;
+            else if(edycja==true)
+            {
+                if(zapis.tellg()!=0)
+                    zapis<<endl;
+                zapis<<persona.id_adresata<<"|"<<persona.id_uzytkownika<<"|"<<persona.imie<<"|"<<persona.nazwisko<<"|"<<persona.nr_tel<<"|"<<persona.email<<"|"<<persona.adres<<"|";
+            }
+
+        }
+        else
+        {
+            if(zapis.tellg()!=0)
+                zapis<<endl;
+            zapis<<linijka;
+        }
+
+    }
+    zapis.close();
+    odczyt.close();
+    remove("Adresaci.txt");
+    rename("Adresaci2.txt","Adresaci.txt");
+}
 void aktualizacja_danej_zmiennej(vector <rekord> &osoba, int nr_id,int nr_linii, int typ_danej, string tekst)
 {
     string tekst_poprzedni=pobranie_wczesniejszego_tekstu(osoba,nr_linii,typ_danej);
@@ -462,11 +506,7 @@ void aktualizacja_danej_zmiennej(vector <rekord> &osoba, int nr_id,int nr_linii,
     else
     {
        ostateczna_edycja_danej(osoba,tekst,nr_linii,typ_danej);
-        remove("Ksiazka_adresowa.txt");
-        for(int i=0; i<osoba.size(); i++)
-        {
-            zapisywanie_rekordu_do_pliku(osoba[i]);
-        }
+       przepisywanie_plikow(nr_id,true,false,osoba[nr_linii]);
     }
 
 }
@@ -577,21 +617,13 @@ int szukanie_id_po_email(vector <rekord> osoba, string email)
     }
     return -1;
 }
-int najwieksze_id(vector <rekord> osoba)
-{
-    int maksimum=0;
-    for(int i=0;i<osoba.size();i++)
-    {
-        if(maksimum<osoba[i].id_adresata)
-            maksimum=osoba[i].id_adresata;
-    }
-    return maksimum;
-}
-void dodawanie_nowego_rekordu_wektor( rekord &persona, vector <rekord> &osoba)
+
+void dodawanie_nowego_rekordu_wektor( rekord &persona, vector <rekord> &osoba,int max_id_adresata)
 {
     fstream zapis;
-    zapis.open("Ksiazka_adresowa.txt",ios::app);
-    persona.id_adresata=najwieksze_id(osoba)+1;
+    zapis.open("Adresaci.txt",ios::app);
+    persona.id_adresata=max_id_adresata+1;
+    persona.id_uzytkownika=osoba[0].id_uzytkownika;
     osoba.push_back(persona);
     cout<<"Nowe dane wygladaja nastepujaco"<<endl;
     wypisywanie_danych_na_ekran(osoba,osoba.size()-1,0);
@@ -625,7 +657,7 @@ int sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(vector <rekord> osoba, in
     return id;
 
 }
-void dodanie_nowego_adresata(vector <rekord> &osoba)
+void dodanie_nowego_adresata(vector <rekord> &osoba,int max_id_adresata)
 {
     rekord persona;
     long int nr_tel;
@@ -633,7 +665,7 @@ void dodanie_nowego_adresata(vector <rekord> &osoba)
     id=sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(osoba,id, persona);
     if(id==-1)
     {
-        dodawanie_nowego_rekordu_wektor(persona,osoba);
+        dodawanie_nowego_rekordu_wektor(persona,osoba,max_id_adresata);
         zapisywanie_rekordu_do_pliku(persona);
         return;
     }
@@ -645,11 +677,11 @@ void dodanie_nowego_adresata(vector <rekord> &osoba)
         if(numer_wyboru==1)
         {
             id=sprawdzenie_powtorzenia_danych_przy_ich_pobieraniu(osoba,id,persona);
-            dodawanie_nowego_rekordu_wektor(persona,osoba);
+            dodawanie_nowego_rekordu_wektor(persona,osoba,max_id_adresata);
             zapisywanie_rekordu_do_pliku(persona);
         }
         else if(numer_wyboru==2)
-            dodanie_nowego_adresata(osoba);
+            dodanie_nowego_adresata(osoba,max_id_adresata);
             else if(numer_wyboru==3)
                 return;
 
@@ -679,15 +711,7 @@ void usuniecie_danych_z_wektora(vector <rekord> &osoba, int nr_linii)
 {
     osoba.erase(osoba.begin()+nr_linii);
 }
-void usuniecie_osoby_z_pliku(int nr_id, vector<rekord> osoba)
-{
-    remove("Ksiazka_adresowa.txt");
-    for(int i=0; i<osoba.size(); i++)
-    {
-        if(osoba[i].id_adresata!=nr_id)
-            zapisywanie_rekordu_do_pliku(osoba[i]);
-    }
-}
+
 bool czy_uzytkownik_chce_usunac_ta_osobe(int nr_id, vector <rekord> osoba)
 {
     cout<<"Czy na pewno chcesz usunac dane tej osoby? [T/N]"<<endl;
@@ -715,7 +739,7 @@ void usuniecie_osoby_o_zadanym_id(vector <rekord>&osoba)
         if(czy_uzytkownik_chce_usunac_ta_osobe(nr_linii_o_szukanym_id,osoba)==true)
         {
         usuniecie_danych_z_wektora(osoba,nr_linii_o_szukanym_id);
-        usuniecie_osoby_z_pliku(szukane_id,osoba);
+        przepisywanie_plikow(szukane_id,false,true,osoba[nr_linii_o_szukanym_id]);
         }
         else
             cout<<"Danych nie usunieto"<<endl;
@@ -759,8 +783,7 @@ void wyszukiwanie_rekordow_po_nazwisku(string nazwisko, vector <rekord> osoba)
         cout<<"W ksiazce adresowej nie ma osoby o takim nazwisku"<<endl;
     system("pause");
 }
-
-void menu_po_logowaniu(vector <rekord> &osoba)
+void menu_po_logowaniu(vector <rekord> &osoba, int max_id_adresata)
 {
         int wybrana_opcja=1;
     while(wybrana_opcja!=9)
@@ -770,7 +793,7 @@ void menu_po_logowaniu(vector <rekord> &osoba)
         switch(wybrana_opcja)
         {
         case 1:
-            dodanie_nowego_adresata(osoba);
+            dodanie_nowego_adresata(osoba,max_id_adresata);
             break;
         case 2:
         {
@@ -820,14 +843,16 @@ int main()
         {
                 int itr;
                 itr=logowanie(uzytkownik);
-                vector <rekord> osoba;
-                fstream plik;
-                plik.open("Ksiazka_adresowa.txt",ios::in);
-                pobieranie_danych_z_pliku(plik,osoba);
-                plik.close();
-                pobieranie_danych_z_pliku(plik,osoba);
-                plik.close();
-                menu_po_logowaniu(osoba);
+                if(itr!=-1)
+               {
+                    vector <rekord> osoba;
+                    fstream plik;
+                    plik.open("Adresaci.txt",ios::in);
+                    int max_id_adresata;
+                    pobieranie_danych_z_pliku(plik,osoba,itr,max_id_adresata);
+                    plik.close();
+                    menu_po_logowaniu(osoba,max_id_adresata);
+               }
                 system("cls");
                 break;
             }
